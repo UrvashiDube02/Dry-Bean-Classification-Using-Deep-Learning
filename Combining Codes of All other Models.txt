@@ -1,0 +1,695 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Aug  8 13:52:49 2023
+
+@author: urvas
+"""
+
+### Combining Codes of All other Models
+
+"""
+# Model 2 without pretrained weights
+
+import tensorflow as tf
+from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Flatten, Dense, BatchNormalization
+from tensorflow import keras
+from tensorflow.keras.models import save_model
+from tensorflow.keras.utils import plot_model
+
+import warnings
+warnings.filterwarnings("ignore", category = FutureWarning)
+
+data_dir = "C:/Users/urvas/Projects/Dry Beans Classification Projects/Dry_Bean_Image_Dataset/Original Dataset 256"
+  
+img_height, img_width = 256, 256
+batch_size = 32
+
+train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="training",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="validation",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+class_names = train_ds.class_names
+print(class_names)
+
+# Calculate the number of classes
+num_classes = len(train_ds.class_names)
+
+# One-hot encode the labels for train_ds and val_ds
+def one_hot_encode_labels(images, labels):
+    labels = tf.one_hot(labels, depth=num_classes)
+    return images, labels
+
+train_ds = train_ds.map(one_hot_encode_labels)
+val_ds = val_ds.map(one_hot_encode_labels)
+
+# Define the input shape
+input_shape = (256, 256, 3)
+
+# Create the input layer
+input_layer = Input(shape=input_shape, name='input_4')
+
+# Block 1
+block1_conv1 = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1')(input_layer)
+block1_conv2 = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv2')(block1_conv1)
+block1_pool = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(block1_conv2)
+
+# Block 2
+block2_conv1 = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv1')(block1_pool)
+block2_conv2 = Conv2D(128, (3, 3), activation='relu', padding='same', name='block2_conv2')(block2_conv1)
+block2_pool = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')(block2_conv2)
+
+# Block 3
+block3_conv1 = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv1')(block2_pool)
+block3_conv2 = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv2')(block3_conv1)
+block3_conv3 = Conv2D(256, (3, 3), activation='relu', padding='same', name='block3_conv3')(block3_conv2)
+block3_pool = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(block3_conv3)
+
+# Block 4
+block4_conv1 = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv1')(block3_pool)
+block4_conv2 = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv2')(block4_conv1)
+block4_conv3 = Conv2D(512, (3, 3), activation='relu', padding='same', name='block4_conv3')(block4_conv2)
+block4_pool = MaxPooling2D((2, 2), strides=(2, 2), name='block4_pool')(block4_conv3)
+
+# Block 5
+block5_conv1 = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv1')(block4_pool)
+block5_conv2 = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv2')(block5_conv1)
+block5_conv3 = Conv2D(512, (3, 3), activation='relu', padding='same', name='block5_conv3')(block5_conv2)
+block5_pool = MaxPooling2D((2, 2), strides=(2, 2), name='block5_pool')(block5_conv3)
+
+# Flatten
+flatten_layer = Flatten(name='flatten_3')(block5_pool)
+
+# Dense layers
+dense1 = Dense(256, activation='relu', name='dense_9')(flatten_layer)
+batch_norm1 = BatchNormalization(name='batch_normalization_6')(dense1)
+
+dense2 = Dense(128, activation='relu', name='dense_10')(batch_norm1)
+batch_norm2 = BatchNormalization(name='batch_normalization_7')(dense2)
+
+output_layer = Dense(14, activation='softmax', name='dense_11')(batch_norm2)
+
+# Create the model
+model = tf.keras.models.Model(inputs=input_layer, outputs=output_layer)
+
+# Print the summary of the model
+model.summary()
+
+model.compile(
+    optimizer=keras.optimizers.Adam(1e-3),
+    loss="categorical_crossentropy",
+    metrics=["accuracy"],
+)
+
+model.fit(
+    train_ds,
+    epochs = 5,
+    validation_data = val_ds,
+    steps_per_epoch = 350)
+
+
+
+# Save the model
+save_model(model, 'C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/Model_2.h5')
+
+# Plot the model
+plot_model(model, to_file='C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/Model_2.png', show_shapes=True)
+
+###############################################################################
+
+# Model 3
+
+import tensorflow as tf
+from keras.layers import Input, Dense, Flatten, BatchNormalization
+from keras.models import Model
+from keras.applications.vgg16 import VGG16
+from tensorflow import keras
+from tensorflow.keras.models import save_model
+from tensorflow.keras.utils import plot_model
+from tensorflow.keras.applications import InceptionV3
+
+import warnings
+warnings.filterwarnings("ignore", category = FutureWarning)
+
+data_dir = "C:/Users/urvas/Projects/Dry Beans Classification Projects/Dry_Bean_Image_Dataset/Original Dataset 256"
+
+img_height, img_width = 256, 256
+batch_size = 32
+
+train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="training",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="validation",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+class_names = train_ds.class_names
+print(class_names)
+
+# Calculate the number of classes
+num_classes = len(train_ds.class_names)
+
+# One-hot encode the labels for train_ds and val_ds
+def one_hot_encode_labels(images, labels):
+    labels = tf.one_hot(labels, depth=num_classes)
+    return images, labels
+
+train_ds = train_ds.map(one_hot_encode_labels)
+val_ds = val_ds.map(one_hot_encode_labels)
+
+# Define the input shape
+input_shape = (256, 256, 3)
+
+# Create the input layer
+input_layer = Input(shape=input_shape, name='input_4')
+
+# Load the pre-trained InceptionV3 model without the top classification layers
+inception_base = InceptionV3(weights='imagenet', include_top=False, input_tensor=input_layer)
+
+# Freeze the weights of the pre-trained layers
+for layer in inception_base.layers:
+    layer.trainable = False
+
+# Add custom layers on top of InceptionV3
+x = inception_base.output
+
+# Flatten
+flatten_layer = Flatten(name='flatten_3')(x)
+
+# Dense layers
+dense1 = Dense(256, activation='relu', name='dense_9')(flatten_layer)
+batch_norm1 = BatchNormalization(name='batch_normalization_7')(dense1)
+
+dense2 = Dense(128, activation='relu', name='dense_10')(batch_norm1)
+batch_norm2 = BatchNormalization(name='batch_normalization_10')(dense2)
+
+output_layer = Dense(14, activation='softmax', name='dense_11')(batch_norm2)
+
+# Create the model
+model = tf.keras.models.Model(inputs = input_layer, outputs = output_layer)
+
+# Print the summary of the model
+model.summary()
+
+model.compile(
+    optimizer=keras.optimizers.Adam(1e-3),
+    loss="categorical_crossentropy",
+    metrics=["accuracy"],)
+
+model.fit(
+    train_ds,
+    epochs = 5,
+    validation_data = val_ds,
+    steps_per_epoch = 350)
+
+# Save the model
+save_model(model, 'C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/Model_3.h5');
+
+# Plot the model
+plot_model(model, to_file='C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/Model_3.png', show_shapes=True);
+
+###############################################################################
+
+# Own Model
+
+import tensorflow as tf
+from keras.layers import Dense, Flatten, BatchNormalization
+from keras.models import Model
+from keras.applications.vgg16 import VGG16
+from tensorflow import keras
+from tensorflow.keras.models import save_model
+from tensorflow.keras.utils import plot_model
+
+import warnings
+warnings.filterwarnings("ignore", category = FutureWarning)
+
+data_dir = "C:/Users/urvas/Projects/Dry Beans Classification Projects/Dry_Bean_Image_Dataset/Original Dataset 256"
+  
+img_height, img_width = 256, 256
+batch_size = 32
+
+train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="training",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="validation",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+class_names = train_ds.class_names
+print(class_names)
+
+# Calculate the number of classes
+num_classes = len(train_ds.class_names)
+
+# One-hot encode the labels for train_ds and val_ds
+def one_hot_encode_labels(images, labels):
+    labels = tf.one_hot(labels, depth=num_classes)
+    return images, labels
+
+train_ds = train_ds.map(one_hot_encode_labels)
+val_ds = val_ds.map(one_hot_encode_labels)
+
+# Load the VGG16 model without the top classification layers
+base_model = VGG16(include_top=False, weights='imagenet', input_shape=(256, 256, 3))
+
+# Freeze the pre-trained layers
+for layer in base_model.layers:
+    layer.trainable = False
+
+# Add custom classification layers on top of VGG16
+x = Flatten()(base_model.output)
+
+x = Dense(256, activation='relu')(x)
+x = BatchNormalization()(x)
+
+x = Dense(128, activation='relu')(x)
+x = BatchNormalization()(x)
+
+output = Dense(14, activation='softmax')(x)
+
+# Create the modified model
+model = Model(inputs=base_model.input, outputs=output)
+
+model.summary()
+
+model.compile(
+    optimizer=keras.optimizers.Adam(1e-3),
+    loss="categorical_crossentropy",
+    metrics=["accuracy"],)
+
+model.fit(
+    train_ds,
+    epochs = 5,
+    validation_data = val_ds,
+    steps_per_epoch = 350)
+
+# Save the model
+save_model(model, 'C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/My_Model_1.h5')
+
+# Plot the model
+plot_model(model, to_file='C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/My_Model_1.png', show_shapes=True)
+
+###############################################################################
+
+# Resnet50
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+import cv2
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import save_model
+from tensorflow.keras.utils import plot_model
+
+data_dir = "C:/Users/urvas/Projects/Dry Beans Classification Projects/Dry_Bean_Image_Dataset/Original Dataset 256"
+
+img_height, img_width = 256, 256
+batch_size = 32
+
+train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="training",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="validation",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+class_names = train_ds.class_names
+print(class_names)
+
+# Calculate the number of classes
+num_classes = len(train_ds.class_names)
+
+# One-hot encode the labels for train_ds and val_ds
+def one_hot_encode_labels(images, labels):
+    labels = tf.one_hot(labels, depth=num_classes)
+    return images, labels
+
+train_ds = train_ds.map(one_hot_encode_labels)
+val_ds = val_ds.map(one_hot_encode_labels)
+
+# Training The Model
+resnet_model = Sequential()
+
+pretrained_model = tf.keras.applications.ResNet50(include_top=False,
+                                                  input_shape=(256, 256, 3),
+                                                  pooling='avg',
+                                                  classes=num_classes,
+                                                  weights='imagenet')
+
+for layer in pretrained_model.layers:
+    layer.trainable = False
+
+resnet_model.add(pretrained_model)
+
+resnet_model.add(Flatten())
+
+resnet_model.add(Dense(512, activation='relu'))
+
+resnet_model.add(Dense(num_classes, activation='softmax'))
+
+resnet_model.summary()
+
+resnet_model.compile(optimizer=Adam(learning_rate=0.001),
+                     loss='categorical_crossentropy',
+                     metrics=['accuracy'])
+
+resnet_model.fit(
+    train_ds,
+    epochs = 5,
+    validation_data = val_ds,
+    steps_per_epoch = 350)
+
+# Save the model
+save_model(resnet_model, 'C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/Resnet50.h5');
+
+# Plot the model
+plot_model(resnet_model, to_file='C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/Resnet50.png', show_shapes=True);
+
+###############################################################################
+
+# VGG16
+
+from keras.layers import Dense, Flatten
+from keras.models import Model
+from keras.applications.vgg16 import VGG16
+import tensorflow as tf
+from tensorflow.keras.optimizers import Adam
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+from tensorflow.keras.applications.vgg16 import preprocess_input
+from tensorflow.keras.models import save_model
+from tensorflow.keras.utils import plot_model
+
+data_dir = "C:/Users/urvas/Projects/Dry Beans Classification Projects/Dry_Bean_Image_Dataset/Original Dataset 256"
+  
+img_height, img_width = 256, 256
+batch_size = 32
+
+train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="training",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="validation",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+class_names = train_ds.class_names
+print(class_names)
+
+# Calculate the number of classes
+num_classes = len(train_ds.class_names)
+
+# One-hot encode the labels for train_ds and val_ds
+def one_hot_encode_labels(images, labels):
+    labels = tf.one_hot(labels, depth=num_classes)
+    return images, labels
+
+train_ds = train_ds.map(one_hot_encode_labels)
+val_ds = val_ds.map(one_hot_encode_labels)
+
+
+IMAGE_SIZE = [256, 256]
+
+vgg = VGG16(input_shape=IMAGE_SIZE + [3], weights='imagenet', include_top=False)
+
+vgg.input
+
+for layer in vgg.layers:
+  layer.trainable = False
+  
+
+x = Flatten()(vgg.output)
+prediction = Dense(num_classes, activation='softmax')(x)
+model = Model(inputs=vgg.input, outputs=prediction)
+model.summary()
+     
+model.compile(optimizer=Adam(learning_rate=0.001),
+                     loss='categorical_crossentropy',
+                     metrics=['accuracy'])
+
+# Function to apply VGG16 preprocessing to a batch of images
+def preprocess_dataset(image, label):
+    return preprocess_input(image), label
+
+# Apply preprocessing to the dataset using map
+train_ds_preprocessed = train_ds.map(preprocess_dataset)
+
+model.fit(
+    train_ds,
+    epochs = 5,
+    validation_data = val_ds,
+    steps_per_epoch = 350)
+
+# Save the model
+save_model(model, 'C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/VGG16.h5');
+
+# Plot the model
+plot_model(model, to_file='C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/VGG16.png', show_shapes=True);
+
+###############################################################################
+
+# VGG19
+
+from keras.layers import Dense, Flatten
+from keras.models import Model
+from keras.applications.vgg19 import VGG19
+import tensorflow as tf
+from tensorflow.keras.optimizers import Adam
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+from tensorflow.keras.applications.vgg19 import preprocess_input
+from tensorflow.keras.models import save_model
+from tensorflow.keras.utils import plot_model
+
+data_dir = "C:/Users/urvas/Projects/Dry Beans Classification Projects/Dry_Bean_Image_Dataset/Original Dataset 256"
+
+img_height, img_width = 256, 256
+batch_size = 32
+
+train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="training",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="validation",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+class_names = train_ds.class_names
+print(class_names)
+
+# Calculate the number of classes
+num_classes = len(train_ds.class_names)
+
+# One-hot encode the labels for train_ds and val_ds
+def one_hot_encode_labels(images, labels):
+    labels = tf.one_hot(labels, depth=num_classes)
+    return images, labels
+
+train_ds = train_ds.map(one_hot_encode_labels)
+val_ds = val_ds.map(one_hot_encode_labels)
+
+IMAGE_SIZE = [256, 256]
+
+vgg = VGG19(input_shape=IMAGE_SIZE + [3], weights='imagenet', include_top=False)
+
+vgg.input
+
+for layer in vgg.layers:
+  layer.trainable = False
+  
+
+x = Flatten()(vgg.output)
+prediction = Dense(num_classes, activation='softmax')(x)
+model = Model(inputs=vgg.input, outputs=prediction)
+model.summary()
+     
+model.compile(optimizer=Adam(learning_rate=0.001),
+                     loss='categorical_crossentropy',
+                     metrics=['accuracy'])
+
+# Function to apply VGG16 preprocessing to a batch of images
+def preprocess_dataset(image, label):
+    return preprocess_input(image), label
+
+# Apply preprocessing to the dataset using map
+train_ds_preprocessed = train_ds.map(preprocess_dataset)
+
+model.fit(
+    train_ds,
+    epochs = 5,
+    validation_data = val_ds,
+    steps_per_epoch = 350)
+
+# Save the model
+save_model(model, 'C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/VGG19.h5');
+
+# Plot the model
+plot_model(model, to_file='C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/VGG19.png', show_shapes=True);
+
+###############################################################################
+
+
+# Xception
+
+import tensorflow as tf
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.models import Model
+from tensorflow.keras.applications import Xception
+from tensorflow.keras.optimizers import Adam
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+from tensorflow.keras.applications.xception import preprocess_input
+from tensorflow.keras.models import save_model
+from tensorflow.keras.utils import plot_model
+
+data_dir = "C:/Users/urvas/Projects/Dry Beans Classification Projects/Dry_Bean_Image_Dataset/Original Dataset 256"
+  
+img_height, img_width = 256, 256
+batch_size = 32
+
+train_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="training",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+val_ds = tf.keras.preprocessing.image_dataset_from_directory(
+    data_dir,
+    validation_split=0.2,
+    subset="validation",
+    seed=123,
+    image_size=(img_height, img_width),
+    batch_size=batch_size,
+)
+
+class_names = train_ds.class_names
+print(class_names)
+
+# Calculate the number of classes
+num_classes = len(train_ds.class_names)
+
+# One-hot encode the labels for train_ds and val_ds
+def one_hot_encode_labels(images, labels):
+    labels = tf.one_hot(labels, depth=num_classes)
+    return images, labels
+
+train_ds = train_ds.map(one_hot_encode_labels)
+val_ds = val_ds.map(one_hot_encode_labels)
+
+IMAGE_SIZE = [256, 256]
+
+Xception = Xception(input_shape=IMAGE_SIZE + [3], weights='imagenet', include_top=False)
+
+Xception.input
+
+for layer in Xception.layers:
+  layer.trainable = False
+  
+
+x = Flatten()(Xception.output)
+prediction = Dense(num_classes, activation='softmax')(x)
+model = Model(inputs=Xception.input, outputs=prediction)
+model.summary()
+
+model.compile(optimizer=Adam(learning_rate=0.001),
+                     loss='categorical_crossentropy',
+                     metrics=['accuracy'])
+
+# Function to apply VGG16 preprocessing to a batch of images
+def preprocess_dataset(image, label):
+    return preprocess_input(image), label
+
+# Apply preprocessing to the dataset using map
+train_ds_preprocessed = train_ds.map(preprocess_dataset)
+
+model.fit(
+    train_ds,
+    epochs = 5,
+    validation_data = val_ds,
+    steps_per_epoch = 350)
+
+# Save the model
+save_model(model, 'C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/Xception.h5');
+
+# Plot the model
+plot_model(model, to_file='C:/Users/urvas/Projects/Dry Beans Classification Projects/Programs Used/Models/All Models/Xception.png', show_shapes=True);
+
+
+###############################################################################
+
+"""
